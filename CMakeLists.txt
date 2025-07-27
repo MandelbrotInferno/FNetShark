@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
+set(CMAKE_TOOLCHAIN_FILE "vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+
 project(FNetShark
     VERSION 1.0
     DESCRIPTION "Cross-platform C++20 file server"
@@ -34,6 +36,10 @@ file(GLOB_RECURSE FNETSHARK_SOURCES CONFIGURE_DEPENDS
 
 # Define executable
 add_executable(FNetShark ${FNETSHARK_SOURCES})
+
+# Link fmt from vcpkg
+find_package(fmt CONFIG REQUIRED)
+target_link_libraries(FNetShark PRIVATE fmt::fmt)
 
 # Compiler warnings
 if(MSVC)
