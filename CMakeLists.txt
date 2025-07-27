@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(CMAKE_TOOLCHAIN_FILE "vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+# Use local vcpkg toolchain
+set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 
 project(FNetShark
     VERSION 1.0
@@ -28,11 +29,25 @@ endif()
 # Include paths
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-# Recursively find all source and header files
+# Recursively find all relevant source and header files
 file(GLOB_RECURSE FNETSHARK_SOURCES CONFIGURE_DEPENDS
     "${PROJECT_SOURCE_DIR}/src/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/*.c"
     "${PROJECT_SOURCE_DIR}/include/*.hpp"
+    "${PROJECT_SOURCE_DIR}/include/*.h"
 )
+
+# --- Visual Studio filters (source groups) ---
+function(group_sources_by_folder FILES_LIST)
+    foreach(file_path IN LISTS FILES_LIST)
+        file(RELATIVE_PATH rel_path "${PROJECT_SOURCE_DIR}" "${file_path}")
+        get_filename_component(dir "${rel_path}" DIRECTORY)
+        string(REPLACE "/" "\\" group "${dir}")
+        source_group("${group}" FILES "${file_path}")
+    endforeach()
+endfunction()
+
+group_sources_by_folder("${FNETSHARK_SOURCES}")
 
 # Define executable
 add_executable(FNetShark ${FNETSHARK_SOURCES})
