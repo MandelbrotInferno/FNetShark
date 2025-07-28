@@ -26,16 +26,23 @@ elseif(UNIX)
     add_definitions(-DPLATFORM_LINUX)
 endif()
 
-# Include paths
+# Only add headers from include/ to the compiler's include path
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-# Recursively find all relevant source and header files
+# Collect source files from src/
 file(GLOB_RECURSE FNETSHARK_SOURCES CONFIGURE_DEPENDS
     "${PROJECT_SOURCE_DIR}/src/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/*.c"
+)
+
+# Collect only header files from include/
+file(GLOB_RECURSE FNETSHARK_HEADERS CONFIGURE_DEPENDS
     "${PROJECT_SOURCE_DIR}/include/*.hpp"
     "${PROJECT_SOURCE_DIR}/include/*.h"
 )
+
+# Combine for filter grouping and IDE visibility
+set(FNETSHARK_ALL_FILES ${FNETSHARK_SOURCES} ${FNETSHARK_HEADERS})
 
 # --- Visual Studio filters (source groups) ---
 function(group_sources_by_folder FILES_LIST)
@@ -47,10 +54,10 @@ function(group_sources_by_folder FILES_LIST)
     endforeach()
 endfunction()
 
-group_sources_by_folder("${FNETSHARK_SOURCES}")
+group_sources_by_folder("${FNETSHARK_ALL_FILES}")
 
-# Define executable
-add_executable(FNetShark ${FNETSHARK_SOURCES})
+# Define executable with source + header files
+add_executable(FNetShark ${FNETSHARK_SOURCES} ${FNETSHARK_HEADERS})
 
 # Link fmt from vcpkg
 find_package(fmt CONFIG REQUIRED)
