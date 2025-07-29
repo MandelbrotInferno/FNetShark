@@ -16,10 +16,8 @@ def run_cmake_preset(preset_name):
     try:
         print(f"Running: cmake --preset {preset_name}")
         subprocess.check_call(["cmake", "--preset", preset_name])
-        print(f"Building: cmake --build build/{preset_name}")
-        subprocess.check_call(["cmake", "--build", f"build/{preset_name}"])
     except subprocess.CalledProcessError as e:
-        print(f"Error during build: {e}")
+        print(f"Error during solution generation: {e}")
         sys.exit(e.returncode)
 
 if __name__ == "__main__":
