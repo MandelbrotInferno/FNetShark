@@ -63,8 +63,18 @@ namespace FNetShark
 		}
 	}
 
+	SOCKET Server::Accept()
+	{
+		SOCKET lv_clientSocket = accept(m_ipv4ListenSocket, nullptr, nullptr);
+		if (INVALID_SOCKET == lv_clientSocket) {
+			fmt::print("accept() failed : {}\n", WSAGetLastError());
+			throw "Serious failure occured!\n";
+		}
+		return lv_clientSocket;
+	}
 
-	void Server::InitCleanUp()
+
+	void Server::CleanUp()
 	{
 		using namespace Utils;
 
