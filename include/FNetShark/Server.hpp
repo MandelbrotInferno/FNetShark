@@ -19,9 +19,9 @@ namespace FNetShark
 
 		void Listen();
 
+		SOCKET Accept();
 
-
-		void InitCleanUp();
+		void CleanUp();
 
 	private:
 
