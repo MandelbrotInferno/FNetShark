@@ -5,6 +5,7 @@
 #include <fmt/core.h>
 #include <cstdio>
 #include <filesystem>
+#include <array>
 
 namespace FNetShark
 {
@@ -72,5 +73,142 @@ namespace FNetShark
 				}
 			}
 		}
+
+		std::string GeneratePathOfAllFilesInServer(const std::unordered_map<std::string, FileBinaryMetaData>& l_allFilesMetaData)
+		{
+			std::string lv_pathOfAllFiles{};
+
+			lv_pathOfAllFiles = lv_pathOfAllFiles + "Server has the following files:\n";
+			for (const auto& l_meta : l_allFilesMetaData) {
+				lv_pathOfAllFiles = lv_pathOfAllFiles + l_meta.first + "\n";
+			}
+
+			return lv_pathOfAllFiles;
+		}
+
+		std::string GenerateNotFoundErrorMsg(const std::string& l_pathOfAllFilesInServer)
+		{
+			std::string lv_notFoundMsg{};
+
+			lv_notFoundMsg = "The requested file does not exist. Choose another file from the following files:\n\n" + l_pathOfAllFilesInServer;
+
+			return lv_notFoundMsg;
+		}
+
+
+		void SendingFileToClientThread(SOCKET l_clientSocket, const std::string& l_pathOfAllFiles, const std::string& l_notFoundMsg, const std::unordered_map<std::string, FileBinaryMetaData>& l_allFilesMetaData)
+		{
+			int lv_result = send(l_clientSocket, l_pathOfAllFiles.data(), (int)l_pathOfAllFiles.size(), 0);
+
+			
+			if (0 == lv_result) {
+				fmt::print("Closing connection. send() sent 0 byte.\n");
+				if (0 != shutdown(l_clientSocket, SD_BOTH)) {
+					fmt::print("shutdown() failed : {}\n", WSAGetLastError());
+				}
+				if (0 != closesocket(l_clientSocket)) {
+					fmt::print("closesocket() failed: {}\n", WSAGetLastError());
+				}
+				return;
+			}
+			else if (lv_result < 0) {
+				fmt::print("send() failed : {}", WSAGetLastError());
+				if (0 != shutdown(l_clientSocket, SD_BOTH)) {
+					fmt::print("shutdown() failed : {}\n", WSAGetLastError());
+				}
+				if (0 != closesocket(l_clientSocket)) {
+					fmt::print("closesocket() failed: {}\n", WSAGetLastError());
+				}
+				return;
+			}
+
+
+			while (0 < lv_result) {
+
+				constexpr size_t lv_sizeRecvBuffer = 2048;
+				std::array<char, lv_sizeRecvBuffer> lv_recvBuffer{};
+
+				lv_result = recv(l_clientSocket, lv_recvBuffer.data(), (int)lv_recvBuffer.size(), 0);
+				if (0 == lv_result) {
+					fmt::print("Closing connection. Received 0 bytes....\n");
+					if (0 != shutdown(l_clientSocket, SD_BOTH)) {
+						fmt::print("shutdown() failed : {}\n", WSAGetLastError());
+					}
+					if (0 != closesocket(l_clientSocket)) {
+						fmt::print("closesocket() failed: {}\n", WSAGetLastError());
+					}
+					return;
+				}
+				else if (lv_result < 0) {
+					fmt::print("recv() failed : {}", WSAGetLastError());
+					if (0 != shutdown(l_clientSocket, SD_BOTH)) {
+						fmt::print("shutdown() failed : {}\n", WSAGetLastError());
+					}
+					if (0 != closesocket(l_clientSocket)) {
+						fmt::print("closesocket() failed: {}\n", WSAGetLastError());
+					}
+					return;
+				}
+
+				const std::string lv_requestedFileName = lv_recvBuffer.data();
+
+				auto lv_fileIter = l_allFilesMetaData.find(lv_requestedFileName);
+
+				if (l_allFilesMetaData.cend() == lv_fileIter) {
+					lv_result = send(l_clientSocket, l_notFoundMsg.data(), (int)l_notFoundMsg.size(), 0);
+
+					if (0 == lv_result) {
+						fmt::print("Closing connection. send() sent 0 bytes.\n");
+						if (0 != shutdown(l_clientSocket, SD_BOTH)) {
+							fmt::print("shutdown() failed : {}\n", WSAGetLastError());
+						}
+						if (0 != closesocket(l_clientSocket)) {
+							fmt::print("closesocket() failed: {}\n", WSAGetLastError());
+						}
+						return;
+					}
+					else if (lv_result < 0) {
+						fmt::print("send() failed : {}", WSAGetLastError());
+						if (0 != shutdown(l_clientSocket, SD_BOTH)) {
+							fmt::print("shutdown() failed : {}\n", WSAGetLastError());
+						}
+						if (0 != closesocket(l_clientSocket)) {
+							fmt::print("closesocket() failed: {}\n", WSAGetLastError());
+						}
+						return;
+					}
+
+				}
+				else {
+					int lv_totalBytesSent{};
+					while (lv_totalBytesSent < (int)lv_fileIter->second.m_totalSizeFile) {
+						
+						lv_result = send(l_clientSocket, &lv_fileIter->second.m_data[lv_totalBytesSent], (int)lv_fileIter->second.m_totalSizeFile - lv_totalBytesSent, 0);
+
+						if (lv_result < 0) {
+							fmt::print("send() failed : {}", WSAGetLastError());
+							if (0 != shutdown(l_clientSocket, SD_BOTH)) {
+								fmt::print("shutdown() failed : {}\n", WSAGetLastError());
+							}
+							if (0 != closesocket(l_clientSocket)) {
+								fmt::print("closesocket() failed: {}\n", WSAGetLastError());
+							}
+							return;
+						}
+
+						lv_totalBytesSent += lv_result;
+					}
+					lv_result = 0;
+				}
+			}
+
+			if (0 != shutdown(l_clientSocket, SD_BOTH)) {
+				fmt::print("shutdown() failed : {}\n", WSAGetLastError());
+			}
+			if (0 != closesocket(l_clientSocket)) {
+				fmt::print("closesocket() failed: {}\n", WSAGetLastError());
+			}
+		}
+
 	}
 }
