@@ -10,7 +10,7 @@
 int main()
 {
 	FNetShark::Server lv_server("2805");
-	constexpr size_t lv_maxTotalAllowedBytesOfAllFileInServer{128000000};
+	constexpr size_t lv_maxTotalAllowedBytesOfAllFileInServer{256000000};
 
 	std::vector<char> lv_allFilesData{};
 	std::unordered_map<std::string, FNetShark::FileBinaryMetaData> lv_fileNamesToMetaData{};
